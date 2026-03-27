@@ -378,9 +378,6 @@ export default function Landing() {
                   boxShadow: `0 20px 60px rgba(77,159,255,0.14)`,
                   p: 3.5, animation: `${fadeUp} 0.8s ease-out 0.3s both`,
                 }}>
-                  {/* static top bar */}
-                  <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '24px 24px 0 0', background: `linear-gradient(90deg, ${C.blue}, ${C.coral})` }} />
-
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, mt: 0.5 }}>
                     <Box>
                       <Typography sx={{ fontWeight: 800, color: C.navy, fontSize: '1.05rem' }}>Tableau de bord</Typography>

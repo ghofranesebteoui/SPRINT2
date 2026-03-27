@@ -63,6 +63,10 @@ const Etablissement = sequelize.define(
     id_ville: {
       type: DataTypes.INTEGER,
     },
+    archive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     tableName: "etablissement",

@@ -12,6 +12,8 @@ const { authenticate, isAdmin } = require("../middleware/auth");
 // Routes pour la gestion des utilisateurs
 router.get("/", authenticate, isAdmin, userController.getAllUsers);
 
+router.post("/", authenticate, isAdmin, userController.createUser);
+
 router.get(
   "/filter-options",
   authenticate,

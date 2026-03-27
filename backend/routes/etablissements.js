@@ -1,13 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { Etablissement } = require("../models");
-const { Op } = require("sequelize");
+const etablissementController = require("../controllers/etablissementController");
+const { authenticateToken, isAdmin } = require("../middleware/auth");
 
+// Routes publiques (pour les formulaires d'inscription)
 // GET /api/etablissements/universites - Liste des universités
 router.get("/universites", async (req, res) => {
   try {
-    // Dans la base de données, les universités sont des rectorats de type UNIVERSITE ou DGET
-    const { Sequelize } = require("sequelize");
     const sequelize = require("../config/database");
 
     const [universites] = await sequelize.query(`
@@ -33,15 +32,10 @@ router.get("/universites", async (req, res) => {
   }
 });
 
-// GET /api/etablissements - Liste tous les établissements (facultés, écoles, instituts)
-router.get("/", async (req, res) => {
+// GET /api/etablissements/public - Liste publique (pour formulaires)
+router.get("/public", async (req, res) => {
   try {
     const { type, universite_id } = req.query;
-
-    console.log("=== API ÉTABLISSEMENTS ===");
-    console.log("Query params:", { type, universite_id });
-
-    const { Sequelize } = require("sequelize");
     const sequelize = require("../config/database");
 
     let query = `
@@ -58,17 +52,13 @@ router.get("/", async (req, res) => {
       WHERE 1=1
     `;
 
-    // Filtrer par université (rectorat) si spécifié
     if (universite_id) {
       query += ` AND e.id_rectorat = ${parseInt(universite_id)}`;
-      console.log("Filtrage par id_rectorat:", universite_id);
     }
 
     query += ` ORDER BY e.nom_etablissement ASC`;
 
     const [etablissements] = await sequelize.query(query);
-
-    console.log("Établissements trouvés:", etablissements.length);
 
     res.json({
       success: true,
@@ -84,30 +74,74 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/etablissements/:id - Détails d'un établissement
-router.get("/:id", async (req, res) => {
-  try {
-    const etablissement = await Etablissement.findByPk(req.params.id);
+// Routes protégées - Admin uniquement
+// IMPORTANT: Les routes spécifiques doivent être définies AVANT le middleware général
 
-    if (!etablissement) {
-      return res.status(404).json({
-        success: false,
-        message: "Établissement non trouvé",
-      });
-    }
+// GET /api/etablissements/stats - Statistiques
+router.get(
+  "/stats",
+  authenticateToken,
+  isAdmin,
+  etablissementController.getEtablissementsStats,
+);
 
-    res.json({
-      success: true,
-      data: etablissement,
-    });
-  } catch (error) {
-    console.error("Erreur récupération établissement:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur serveur",
-      error: error.message,
-    });
-  }
-});
+// GET /api/etablissements/export - Exporter en CSV
+router.get(
+  "/export",
+  authenticateToken,
+  isAdmin,
+  etablissementController.exportEtablissements,
+);
+
+// Appliquer le middleware pour toutes les routes suivantes
+router.use(authenticateToken, isAdmin);
+
+// GET /api/etablissements - Liste avec filtres et pagination
+router.get("/", etablissementController.getEtablissements);
+
+// GET /api/etablissements/departements/:departementId/specialites - Spécialités d'un département (AVANT /:id)
+router.get(
+  "/departements/:departementId/specialites",
+  etablissementController.getSpecialitesByDepartement,
+);
+
+// GET /api/etablissements/:id - Détail d'un établissement
+router.get("/:id", etablissementController.getEtablissementById);
+
+// GET /api/etablissements/:id/departements - Départements d'un établissement
+router.get(
+  "/:id/departements",
+  etablissementController.getDepartementsByEtablissement,
+);
+
+// GET /api/etablissements/:id/specialites - Spécialités d'un établissement
+router.get(
+  "/:id/specialites",
+  etablissementController.getSpecialitesByEtablissement,
+);
+
+// GET /api/etablissements/:id/enseignants - Enseignants d'un établissement
+router.get(
+  "/:id/enseignants",
+  etablissementController.getEnseignantsByEtablissement,
+);
+
+// POST /api/etablissements - Créer un établissement
+router.post("/", etablissementController.createEtablissement);
+
+// PUT /api/etablissements/:id - Modifier un établissement
+router.put("/:id", etablissementController.updateEtablissement);
+
+// DELETE /api/etablissements/:id - Archiver un établissement
+router.delete("/:id", etablissementController.archiveEtablissement);
+
+// POST /api/etablissements/:id/restore - Restaurer un établissement archivé
+router.post("/:id/restore", etablissementController.restoreEtablissement);
+
+// DELETE /api/etablissements/:id/permanent - Supprimer définitivement un établissement
+router.delete(
+  "/:id/permanent",
+  etablissementController.deleteEtablissementPermanent,
+);
 
 module.exports = router;

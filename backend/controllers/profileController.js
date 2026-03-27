@@ -4,14 +4,18 @@ require("dotenv").config();
 // Récupérer le profil de l'utilisateur connecté
 const getProfile = async (req, res) => {
   try {
+    console.log("🔍 getProfile - req.user:", req.user);
     const userEmail = req.user?.email;
 
     if (!userEmail) {
+      console.error("❌ getProfile - Email manquant dans req.user");
       return res.status(401).json({
         success: false,
         message: "Utilisateur non authentifié",
       });
     }
+
+    console.log("✅ getProfile - Email trouvé:", userEmail);
 
     // Récupérer les informations de base de l'utilisateur
     const userResult = await sequelize.query(
@@ -32,6 +36,8 @@ const getProfile = async (req, res) => {
         type: sequelize.QueryTypes.SELECT,
       },
     );
+
+    console.log("📊 getProfile - Résultat requête utilisateur:", userResult);
 
     if (userResult.length === 0) {
       return res.status(404).json({
@@ -77,14 +83,19 @@ const getProfile = async (req, res) => {
           e.numero_etudiant,
           e.cin,
           e.date_naissance,
-          e.filiere,
+          e.id_specialite,
           e.adresse,
           e.code_postal,
           e.moyenne_generale,
+          e.id_etablissement,
           v.nom_ville as ville_nom,
-          v.id_ville
+          v.id_ville,
+          s.nom_specialite as specialite_nom,
+          etab.nom_etablissement as etablissement_nom
         FROM etudiant e
         LEFT JOIN ville v ON e.id_ville = v.id_ville
+        LEFT JOIN specialite s ON e.id_specialite = s.id_specialite
+        LEFT JOIN etablissement etab ON e.id_etablissement = etab.id_etablissement
         WHERE e.numero_utilisateur = $1`,
         {
           bind: [user.numero_utilisateur],
@@ -97,12 +108,14 @@ const getProfile = async (req, res) => {
       }
     }
 
+    console.log("✅ getProfile - Profil complet:", profileData);
+
     res.json({
       success: true,
       data: profileData,
     });
   } catch (error) {
-    console.error("Erreur getProfile:", error);
+    console.error("❌ Erreur getProfile:", error);
     res.status(500).json({
       success: false,
       message: "Erreur lors de la récupération du profil",
@@ -222,15 +235,16 @@ const updateSpecificProfile = async (req, res) => {
         },
       );
     } else if (type_utilisateur === "ETUDIANT" && updates.etudiant) {
-      const { filiere, id_ville } = updates.etudiant;
+      const { id_specialite, id_ville, id_etablissement } = updates.etudiant;
 
       await sequelize.query(
         `UPDATE etudiant 
-         SET filiere = COALESCE($1, filiere),
-             id_ville = COALESCE($2, id_ville)
-         WHERE numero_utilisateur = $3`,
+         SET id_specialite = COALESCE($1, id_specialite),
+             id_ville = COALESCE($2, id_ville),
+             id_etablissement = COALESCE($3, id_etablissement)
+         WHERE numero_utilisateur = $4`,
         {
-          bind: [filiere, id_ville, numero_utilisateur],
+          bind: [id_specialite, id_ville, id_etablissement, numero_utilisateur],
           type: sequelize.QueryTypes.UPDATE,
         },
       );

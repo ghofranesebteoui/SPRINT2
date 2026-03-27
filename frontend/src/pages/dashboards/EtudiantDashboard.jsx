@@ -44,12 +44,17 @@ const EtudiantDashboard = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${config.apiUrl}/etudiant/profile`, {
+        console.log('🔑 Token présent:', !!token);
+        console.log('🔑 Token value:', token?.substring(0, 20) + '...');
+        
+        const response = await axios.get(`${config.apiUrl}/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log('✅ Profil reçu:', response.data);
         setProfile(response.data.data);
       } catch (error) {
-        console.error('Erreur chargement profil:', error);
+        console.error('❌ Erreur chargement profil:', error);
+        console.error('❌ Détails erreur:', error.response?.data);
       } finally {
         setLoading(false);
       }

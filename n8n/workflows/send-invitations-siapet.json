@@ -18,7 +18,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  u.numero_utilisateur,\n  u.nom,\n  u.prenom,\n  u.email,\n  LOWER(u.type_utilisateur) as role\nFROM utilisateur u\nWHERE u.email IN (\n  'benhazemmemna@gmail.com',\n  'ghofranesebteoui16@gmail.com',\n  'gsebteoui@gmail.com'\n)\nAND u.statut = 'ACTIF'\nORDER BY \n  CASE u.email\n    WHEN 'benhazemmemna@gmail.com' THEN 1\n    WHEN 'ghofranesebteoui16@gmail.com' THEN 2\n    WHEN 'gsebteoui@gmail.com' THEN 3\n  END",
+        "query": "SELECT \n  u.numero_utilisateur,\n  u.nom,\n  u.prenom,\n  u.email,\n  LOWER(u.type_utilisateur) as role\nFROM utilisateur u\nWHERE u.email IN (\n  'benhazemmemna@gmail.com',\n  'ghofranesebteoui16@gmail.com',\n  'gsebteoui@gmail.com',\n  'benahmedjamila31@gmail.com'\n)\nAND u.statut = 'ACTIF'\nORDER BY \n  CASE u.email\n    WHEN 'benhazemmemna@gmail.com' THEN 1\n    WHEN 'ghofranesebteoui16@gmail.com' THEN 2\n    WHEN 'gsebteoui@gmail.com' THEN 3\n    WHEN 'benahmedjamila31@gmail.com' THEN 4\n  END",
         "additionalFields": {}
       },
       "id": "postgres-query",

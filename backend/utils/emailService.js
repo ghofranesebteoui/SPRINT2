@@ -1140,14 +1140,18 @@ const sendAccessRejectedEmail = async ({
           }
           .btn { 
             display: inline-block;
-            background: linear-gradient(135deg, #1E70EB 0%, #0D4CB3 100%); 
-            color: white; 
+            background: #1E3A5F; 
+            color: #FFFFFF !important; 
             padding: 16px 40px; 
             text-decoration: none; 
             border-radius: 12px;
             font-weight: 700;
             font-size: 15px;
-            box-shadow: 0 4px 16px rgba(30, 112, 235, 0.3);
+            box-shadow: 0 4px 16px rgba(30, 58, 95, 0.3);
+          }
+          .btn:hover {
+            background: #152B47;
+            box-shadow: 0 6px 24px rgba(30, 58, 95, 0.4);
           }
           .footer { 
             text-align: center; 

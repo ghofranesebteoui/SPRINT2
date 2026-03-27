@@ -29,11 +29,15 @@ exports.authorize = (...roles) => {
 
 // Middleware pour vérifier si l'utilisateur est admin
 exports.isAdmin = (req, res, next) => {
+  console.log("🔍 isAdmin middleware - User role:", req.user.role);
+  console.log("🔍 isAdmin middleware - Full user:", req.user);
+
   // Accepter ADMIN_MESRS ou ADMIN
   if (req.user.role !== "ADMIN_MESRS" && req.user.role !== "ADMIN") {
-    return res.status(403).json({ 
-      message: "Accès refusé. Seuls les administrateurs peuvent effectuer cette action.",
-      userRole: req.user.role // Pour debug
+    return res.status(403).json({
+      message:
+        "Accès refusé. Seuls les administrateurs peuvent effectuer cette action.",
+      userRole: req.user.role, // Pour debug
     });
   }
   next();

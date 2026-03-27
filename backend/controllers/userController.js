@@ -3,6 +3,8 @@ const User = require("../models/User");
 const Etudiant = require("../models/Etudiant");
 const Enseignant = require("../models/Enseignant");
 const auditService = require("../services/auditService");
+const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 
 // Récupérer tous les utilisateurs avec filtres
 exports.getAllUsers = async (req, res) => {
@@ -97,13 +99,12 @@ exports.getAllUsers = async (req, res) => {
       LEFT JOIN etudiant et ON u.numero_utilisateur = et.numero_utilisateur
       LEFT JOIN enseignant ens ON u.numero_utilisateur = ens.numero_utilisateur
       LEFT JOIN directeur_etablissement de ON u.numero_utilisateur = de.numero_utilisateur
-      LEFT JOIN recteur_universite ru ON u.numero_utilisateur = ru.numero_utilisateur
       LEFT JOIN ville v ON et.id_ville = v.id_ville
       LEFT JOIN region r ON v.id_region = r.id_region
       LEFT JOIN etablissement e ON COALESCE(de.id_etablissement, ens.id_etablissement_principal) = e.id_etablissement
       LEFT JOIN ville v_etab ON e.id_ville = v_etab.id_ville
       LEFT JOIN region r_etab ON v_etab.id_region = r_etab.id_region
-      LEFT JOIN rectorat rec ON COALESCE(e.id_rectorat, ru.id_rectorat) = rec.id_rectorat
+      LEFT JOIN rectorat rec ON e.id_rectorat = rec.id_rectorat
       ${whereClause}
     `;
 
@@ -133,7 +134,6 @@ exports.getAllUsers = async (req, res) => {
         u.date_creation,
         u.derniere_connexion,
         et.numero_etudiant as etudiant_matricule,
-        et.filiere as etudiant_filiere,
         et.moyenne_generale as etudiant_moyenne,
         ens.numero_enseignant,
         ens.grade as enseignant_grade,
@@ -146,13 +146,12 @@ exports.getAllUsers = async (req, res) => {
       LEFT JOIN etudiant et ON u.numero_utilisateur = et.numero_utilisateur
       LEFT JOIN enseignant ens ON u.numero_utilisateur = ens.numero_utilisateur
       LEFT JOIN directeur_etablissement de ON u.numero_utilisateur = de.numero_utilisateur
-      LEFT JOIN recteur_universite ru ON u.numero_utilisateur = ru.numero_utilisateur
       LEFT JOIN ville v ON et.id_ville = v.id_ville
       LEFT JOIN region r ON v.id_region = r.id_region
       LEFT JOIN etablissement e ON COALESCE(de.id_etablissement, ens.id_etablissement_principal) = e.id_etablissement
       LEFT JOIN ville v_etab ON e.id_ville = v_etab.id_ville
       LEFT JOIN region r_etab ON v_etab.id_region = r_etab.id_region
-      LEFT JOIN rectorat rec ON COALESCE(e.id_rectorat, ru.id_rectorat) = rec.id_rectorat
+      LEFT JOIN rectorat rec ON e.id_rectorat = rec.id_rectorat
       ${whereClause}
       ORDER BY u.date_creation DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -281,6 +280,117 @@ exports.getUserStats = async (req, res) => {
   }
 };
 
+// Créer un utilisateur (générique)
+exports.createUser = async (req, res) => {
+  try {
+    console.log("📝 Création d'utilisateur - Body reçu:", req.body);
+
+    const {
+      type_utilisateur,
+      email,
+      nom,
+      prenom,
+      telephone,
+      id_etablissement,
+      id_rectorat,
+    } = req.body;
+
+    console.log("📝 Données extraites:", {
+      type_utilisateur,
+      email,
+      nom,
+      prenom,
+      telephone,
+      id_etablissement,
+      id_rectorat,
+    });
+
+    // Vérifier si l'email existe déjà
+    const existing = await sequelize.query(
+      "SELECT numero_utilisateur FROM utilisateur WHERE email = $1",
+      {
+        bind: [email],
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Email déjà utilisé" });
+    }
+
+    // Générer un mot de passe temporaire
+    const tempPassword = crypto.randomBytes(8).toString("hex");
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // Générer un numéro d'utilisateur unique
+    const userNum = `USR-${type_utilisateur.substring(0, 3)}-${Date.now()}`;
+
+    console.log("📝 Insertion de l'utilisateur dans la base...");
+    console.log("📝 Numéro utilisateur généré:", userNum);
+
+    // Insérer le nouvel utilisateur
+    const result = await sequelize.query(
+      `INSERT INTO utilisateur (numero_utilisateur, email, mot_de_passe, nom, prenom, telephone, type_utilisateur, statut, date_creation)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIF', NOW())
+       RETURNING numero_utilisateur, email, nom, prenom, telephone, type_utilisateur, statut`,
+      {
+        bind: [
+          userNum,
+          email,
+          hashedPassword,
+          nom,
+          prenom,
+          telephone,
+          type_utilisateur,
+        ],
+        type: sequelize.QueryTypes.INSERT,
+      },
+    );
+
+    console.log(
+      "📝 Résultat brut de l'insertion:",
+      JSON.stringify(result, null, 2),
+    );
+
+    const newUser = result[0] && result[0][0] ? result[0][0] : result[0];
+    console.log("✅ Utilisateur créé:", newUser);
+
+    if (!newUser || !newUser.numero_utilisateur) {
+      throw new Error(
+        "Échec de la création de l'utilisateur - pas de numero_utilisateur retourné",
+      );
+    }
+
+    // Créer l'entrée spécifique selon le type
+    if (type_utilisateur === "DIRECTEUR" && id_etablissement) {
+      console.log("📝 Création de l'entrée directeur_etablissement...");
+      const dirNum = `DIR${Date.now()}`;
+      await sequelize.query(
+        `INSERT INTO directeur_etablissement (numero_utilisateur, numero_directeur, id_etablissement, date_nomination, mandat_debut, mandat_fin)
+         VALUES ($1, $2, $3, NOW(), NOW(), NOW() + INTERVAL '4 years')`,
+        {
+          bind: [newUser.numero_utilisateur, dirNum, id_etablissement],
+          type: sequelize.QueryTypes.INSERT,
+        },
+      );
+      console.log("✅ Entrée directeur_etablissement créée");
+    }
+
+    res.status(201).json({
+      message: `Compte ${type_utilisateur.toLowerCase()} créé avec succès`,
+      user: newUser,
+      tempPassword,
+    });
+  } catch (error) {
+    console.error("❌ Erreur lors de la création de l'utilisateur:", error);
+    console.error("❌ Stack:", error.stack);
+    res.status(500).json({
+      message: "Erreur lors de la création de l'utilisateur",
+      error: error.message,
+    });
+  }
+};
+
 // Créer un compte Admin
 exports.createAdmin = async (req, res) => {
   try {
@@ -300,9 +410,7 @@ exports.createAdmin = async (req, res) => {
     }
 
     // Générer un mot de passe temporaire
-    const crypto = require("crypto");
     const tempPassword = crypto.randomBytes(8).toString("hex");
-    const bcrypt = require("bcryptjs");
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     // Insérer le nouvel admin
@@ -349,9 +457,7 @@ exports.createDirecteur = async (req, res) => {
     }
 
     // Générer un mot de passe temporaire
-    const crypto = require("crypto");
     const tempPassword = crypto.randomBytes(8).toString("hex");
-    const bcrypt = require("bcryptjs");
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     // Insérer le nouveau directeur
@@ -367,11 +473,14 @@ exports.createDirecteur = async (req, res) => {
 
     // Créer l'entrée directeur si id_etablissement est fourni
     if (id_etablissement) {
+      // Générer un numéro de directeur
+      const dirNum = `DIR${Date.now()}`;
+
       await sequelize.query(
-        `INSERT INTO directeur (numero_utilisateur, id_etablissement)
-         VALUES ($1, $2)`,
+        `INSERT INTO directeur_etablissement (numero_utilisateur, numero_directeur, id_etablissement, date_nomination, mandat_debut, mandat_fin)
+         VALUES ($1, $2, $3, NOW(), NOW(), NOW() + INTERVAL '4 years')`,
         {
-          bind: [result[0][0].numero_utilisateur, id_etablissement],
+          bind: [result[0][0].numero_utilisateur, dirNum, id_etablissement],
           type: sequelize.QueryTypes.INSERT,
         },
       );
@@ -395,11 +504,22 @@ exports.createDirecteur = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, nom, prenom, telephone } = req.body;
+    const { email, nom, prenom, telephone, id_etablissement, id_rectorat } =
+      req.body;
 
-    // Vérifier si l'utilisateur existe
+    console.log("📝 Modification utilisateur:", {
+      id,
+      email,
+      nom,
+      prenom,
+      telephone,
+      id_etablissement,
+      id_rectorat,
+    });
+
+    // Vérifier si l'utilisateur existe et récupérer son type
     const user = await sequelize.query(
-      "SELECT numero_utilisateur, email FROM utilisateur WHERE numero_utilisateur = $1",
+      "SELECT numero_utilisateur, email, type_utilisateur FROM utilisateur WHERE numero_utilisateur = $1",
       {
         bind: [id],
         type: sequelize.QueryTypes.SELECT,
@@ -409,6 +529,8 @@ exports.updateUser = async (req, res) => {
     if (user.length === 0) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
+
+    const userType = user[0].type_utilisateur;
 
     // Vérifier si le nouvel email est déjà utilisé
     if (email && email !== user[0].email) {
@@ -467,6 +589,51 @@ exports.updateUser = async (req, res) => {
       bind: params,
       type: sequelize.QueryTypes.UPDATE,
     });
+
+    // Mettre à jour l'établissement pour les directeurs
+    if (userType === "DIRECTEUR" && id_etablissement !== undefined) {
+      console.log("📝 Mise à jour de l'établissement du directeur");
+
+      const existingDir = await sequelize.query(
+        "SELECT numero_utilisateur FROM directeur_etablissement WHERE numero_utilisateur = $1",
+        {
+          bind: [id],
+          type: sequelize.QueryTypes.SELECT,
+        },
+      );
+
+      if (existingDir.length > 0) {
+        await sequelize.query(
+          "UPDATE directeur_etablissement SET id_etablissement = $1 WHERE numero_utilisateur = $2",
+          {
+            bind: [id_etablissement, id],
+            type: sequelize.QueryTypes.UPDATE,
+          },
+        );
+      } else if (id_etablissement) {
+        const dirNum = `DIR${Date.now()}`;
+        await sequelize.query(
+          `INSERT INTO directeur_etablissement (numero_utilisateur, numero_directeur, id_etablissement, date_nomination, mandat_debut, mandat_fin)
+           VALUES ($1, $2, $3, NOW(), NOW(), NOW() + INTERVAL '4 years')`,
+          {
+            bind: [id, dirNum, id_etablissement],
+            type: sequelize.QueryTypes.INSERT,
+          },
+        );
+      }
+    }
+
+    // Mettre à jour l'établissement pour les enseignants
+    if (userType === "ENSEIGNANT" && id_etablissement !== undefined) {
+      console.log("📝 Mise à jour de l'établissement de l'enseignant");
+      await sequelize.query(
+        "UPDATE enseignant SET id_etablissement_principal = $1 WHERE numero_utilisateur = $2",
+        {
+          bind: [id_etablissement, id],
+          type: sequelize.QueryTypes.UPDATE,
+        },
+      );
+    }
 
     res.json({
       message: "Utilisateur modifié avec succès",
@@ -724,3 +891,5 @@ exports.restoreUser = async (req, res) => {
     });
   }
 };
+
+// Note: La fonction updateUser a été modifiée pour supporter la modification de l'établissement

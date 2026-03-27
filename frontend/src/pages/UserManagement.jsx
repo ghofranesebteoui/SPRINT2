@@ -150,6 +150,7 @@ const UserManagement = () => {
   const [snackbar, setSnackbar]           = useState({ open: false, message: '', severity: 'success' });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser]     = useState(null);
+  const [editFormData, setEditFormData]   = useState({});
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newUser, setNewUser]             = useState({
     nom: '', prenom: '', email: '', telephone: '', 
@@ -202,7 +203,26 @@ const UserManagement = () => {
 
   const handleEditUser = (user) => {
     setEditingUser(user);
+    setEditFormData({
+      nom: user.nom,
+      prenom: user.prenom,
+      email: user.email,
+      telephone: user.telephone,
+      id_rectorat: '',
+      id_etablissement: '',
+    });
     setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      await api.put(`/users/${editingUser.numero_utilisateur}`, editFormData);
+      setSnackbar({ open: true, message: 'Utilisateur modifié avec succès', severity: 'success' });
+      setEditDialogOpen(false);
+      fetchUsers();
+    } catch (error) {
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Erreur lors de la modification', severity: 'error' });
+    }
   };
 
   const handleAddUser = async () => {
@@ -394,14 +414,6 @@ const UserManagement = () => {
               </Box>
               <Typography sx={{ fontWeight: 800, color: C.navy, fontSize: '0.95rem' }}>Filtres de recherche</Typography>
             </Box>
-            <Button startIcon={<Clear sx={{ fontSize: '0.9rem !important' }} />} onClick={handleResetFilters} size="small" sx={{
-              color: '#EF4444', textTransform: 'none', fontSize: '0.82rem', borderRadius: '10px', fontWeight: 600,
-              border: `1.5px solid #FEE2E2`,
-              background: '#FEF2F2',
-              '&:hover': { background: '#FEE2E2', borderColor: '#FECACA', color: '#DC2626' },
-            }}>
-              Réinitialiser
-            </Button>
           </Box>
 
           <Grid container spacing={2}>
@@ -892,17 +904,83 @@ const UserManagement = () => {
             <DialogContent sx={{ p: 3, background: '#FAFCFF' }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth size="small" label="Nom" defaultValue={editingUser.nom} sx={editFieldSx} />
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    label="Nom" 
+                    value={editFormData.nom || ''}
+                    onChange={(e) => setEditFormData({...editFormData, nom: e.target.value})}
+                    sx={editFieldSx} 
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth size="small" label="Prénom" defaultValue={editingUser.prenom} sx={editFieldSx} />
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    label="Prénom" 
+                    value={editFormData.prenom || ''}
+                    onChange={(e) => setEditFormData({...editFormData, prenom: e.target.value})}
+                    sx={editFieldSx} 
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth size="small" label="Email" defaultValue={editingUser.email} sx={editFieldSx} />
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    label="Email" 
+                    value={editFormData.email || ''}
+                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    sx={editFieldSx} 
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth size="small" label="Téléphone" defaultValue={editingUser.telephone} sx={editFieldSx} />
+                  <TextField 
+                    fullWidth 
+                    size="small" 
+                    label="Téléphone" 
+                    value={editFormData.telephone || ''}
+                    onChange={(e) => setEditFormData({...editFormData, telephone: e.target.value})}
+                    sx={editFieldSx} 
+                  />
                 </Grid>
+
+                {/* Champs université et établissement pour directeurs et enseignants */}
+                {(editingUser.type_utilisateur === 'DIRECTEUR' || editingUser.type_utilisateur === 'ENSEIGNANT') && (
+                  <>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small" sx={editFieldSx}>
+                        <InputLabel>Université</InputLabel>
+                        <Select 
+                          value={editFormData.id_rectorat || ''} 
+                          label="Université" 
+                          onChange={(e) => setEditFormData({...editFormData, id_rectorat: e.target.value, id_etablissement: ''})}
+                        >
+                          <MenuItem value="">Sélectionnez une université</MenuItem>
+                          {filterOptions.universites.map(u => (
+                            <MenuItem key={u.id_rectorat} value={u.id_rectorat}>{u.nom_rectorat}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small" sx={editFieldSx} disabled={!editFormData.id_rectorat}>
+                        <InputLabel>Établissement</InputLabel>
+                        <Select 
+                          value={editFormData.id_etablissement || ''} 
+                          label="Établissement" 
+                          onChange={(e) => setEditFormData({...editFormData, id_etablissement: e.target.value})}
+                        >
+                          <MenuItem value="">Sélectionnez un établissement</MenuItem>
+                          {filterOptions.etablissements
+                            .filter(e => !editFormData.id_rectorat || e.id_rectorat == editFormData.id_rectorat)
+                            .map(e => (
+                              <MenuItem key={e.id_etablissement} value={e.id_etablissement}>{e.nom_etablissement}</MenuItem>
+                            ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </>
+                )}
               </Grid>
 
               <Box sx={{ display: 'flex', gap: 1.5, mt: 3, pt: 2.5, borderTop: `1px solid ${C.blueL}` }}>
@@ -910,7 +988,7 @@ const UserManagement = () => {
                   borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: C.navy, border: `1.5px solid ${C.blueL}`,
                   '&:hover': { background: editBgLight, borderColor: `${editAccent}50` },
                 }}>Annuler</Button>
-                <Button fullWidth sx={{
+                <Button fullWidth onClick={handleSaveEdit} sx={{
                   borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#fff',
                   background: `linear-gradient(135deg, ${editAccent}, #FF8C5A)`,
                   '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 6px 20px ${editAccent}40` },

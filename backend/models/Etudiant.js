@@ -29,8 +29,11 @@ const Etudiant = sequelize.define(
     code_postal: {
       type: DataTypes.STRING(10),
     },
-    filiere: {
-      type: DataTypes.STRING(200),
+    id_specialite: {
+      type: DataTypes.INTEGER,
+    },
+    id_etablissement: {
+      type: DataTypes.INTEGER,
     },
     moyenne_generale: {
       type: DataTypes.DECIMAL(5, 2),

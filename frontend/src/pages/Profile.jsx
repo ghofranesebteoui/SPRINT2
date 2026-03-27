@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import config from '../config';
+import { useNotifications } from '../contexts/NotificationContext';
 import {
   Box, Card, CardContent, Typography, TextField, Button, Grid,
   Avatar, Divider, Alert, CircularProgress, IconButton,
-  InputAdornment, Chip, Badge,
+  InputAdornment, Chip, Badge, List, ListItem, ListItemText,
+  ListItemAvatar, Switch,
 } from '@mui/material';
 import {
   Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon,
   Visibility, VisibilityOff, PhotoCamera, ArrowBack,
   CheckCircle, Person, Email, Phone, CreditCard, Work,
+  Delete as DeleteIcon, MarkEmailRead as MarkEmailReadIcon,
 } from '@mui/icons-material';
 
 const C = {
@@ -33,6 +36,18 @@ const fieldSx = (accent = C.blue, disabled = false) => ({
 
 export default function Profile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { 
+    notifications, 
+    preferences: notificationPrefs, 
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAllNotifications,
+    togglePreference: toggleNotificationPref
+  } = useNotifications();
+  
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [changingPwd, setChangingPwd] = useState(false);
@@ -50,7 +65,15 @@ export default function Profile() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [pwdData, setPwdData] = useState({ ancien: '', nouveau: '', confirmer: '' });
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => { 
+    fetchProfile(); 
+    
+    // Vérifier si on doit ouvrir l'onglet notifications via URL
+    const tab = searchParams.get('tab');
+    if (tab === 'notifications') {
+      setActiveTab('notifications');
+    }
+  }, [searchParams]);
 
   const fetchProfile = async () => {
     try {
@@ -411,7 +434,7 @@ export default function Profile() {
           {[
             { key: 'info', icon: '📋', label: 'Informations' },
             { key: 'security', icon: '🔒', label: 'Sécurité' },
-            { key: 'notifications', icon: '🔔', label: 'Notifications', badge: 3 },
+            { key: 'notifications', icon: '🔔', label: 'Notifications', badge: unreadCount },
           ].map(tab => (
             <Button 
               key={tab.key} 
@@ -731,10 +754,295 @@ export default function Profile() {
 
       {/* TAB NOTIFICATIONS */}
       {activeTab === 'notifications' && (
-        <Card sx={{ borderRadius: '20px', border: `1.5px solid ${C.blueL}`, boxShadow: `0 2px 12px rgba(0,0,0,0.06)`, p: 4 }}>
-          <Typography sx={{ fontSize: '1.2rem', color: C.navy, fontWeight: 700 }}>🔔 Notifications</Typography>
-          <Typography sx={{ color: '#8A9BB0', mt: 1 }}>Gérez vos préférences de notifications</Typography>
-        </Card>
+        <Grid container spacing={3}>
+          {/* Liste des notifications */}
+          <Grid item xs={12} md={8}>
+            <Card sx={{ borderRadius: '20px', border: `1.5px solid ${C.blueL}`, boxShadow: `0 2px 12px rgba(0,0,0,0.06)` }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Typography sx={{ fontSize: '1.8rem' }}>🔔</Typography>
+                    <Box>
+                      <Typography sx={{ fontSize: '1.15rem', color: C.navy, fontWeight: 700 }}>
+                        Notifications
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.8rem', color: '#8A9BB0' }}>
+                        {unreadCount > 0 ? `${unreadCount} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes lues'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  {notifications.length > 0 && (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      {unreadCount > 0 && (
+                        <Button
+                          startIcon={<MarkEmailReadIcon />}
+                          onClick={markAllAsRead}
+                          sx={{
+                            textTransform: 'none',
+                            fontSize: '0.85rem',
+                            color: C.blue,
+                            px: 2,
+                            py: 0.8,
+                            borderRadius: '10px',
+                            border: `1.5px solid ${C.blueL}`,
+                            '&:hover': { background: C.blueL },
+                          }}
+                        >
+                          Tout marquer comme lu
+                        </Button>
+                      )}
+                      <Button
+                        startIcon={<DeleteIcon />}
+                        onClick={clearAllNotifications}
+                        sx={{
+                          textTransform: 'none',
+                          fontSize: '0.85rem',
+                          color: C.red,
+                          px: 2,
+                          py: 0.8,
+                          borderRadius: '10px',
+                          border: `1.5px solid ${C.redL}`,
+                          '&:hover': { background: C.redL },
+                        }}
+                      >
+                        Tout effacer
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+
+                {notifications.length === 0 ? (
+                  <Box sx={{ 
+                    py: 8, 
+                    textAlign: 'center',
+                    borderRadius: '14px',
+                    background: `${C.blueL}`,
+                    border: `1.5px dashed ${C.blue}40`
+                  }}>
+                    <Typography sx={{ fontSize: '3rem', mb: 2 }}>🔕</Typography>
+                    <Typography sx={{ fontSize: '1.1rem', color: C.navy, fontWeight: 600, mb: 1 }}>
+                      Aucune notification
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem', color: '#8A9BB0' }}>
+                      Vous serez notifié ici des nouvelles demandes d'accès
+                    </Typography>
+                  </Box>
+                ) : (
+                  <List sx={{ p: 0 }}>
+                    {notifications.map((notif, index) => (
+                      <ListItem
+                        key={notif.id}
+                        sx={{
+                          mb: 1.5,
+                          p: 2.5,
+                          borderRadius: '14px',
+                          background: notif.read ? '#F8FAFC' : `${C.blue}08`,
+                          border: `1.5px solid ${notif.read ? '#E2E8F0' : C.blueL}`,
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            transform: 'translateX(4px)',
+                            boxShadow: `0 4px 12px ${notif.read ? 'rgba(0,0,0,0.08)' : `${C.blue}20`}`,
+                          },
+                        }}
+                      >
+                        <ListItemAvatar>
+                          <Avatar sx={{ 
+                            width: 48, 
+                            height: 48, 
+                            background: notif.read ? '#E2E8F0' : `${C.blue}20`,
+                            fontSize: '1.5rem'
+                          }}>
+                            {notif.icon}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              <Typography sx={{ 
+                                fontWeight: notif.read ? 600 : 800, 
+                                fontSize: '0.95rem', 
+                                color: C.navy 
+                              }}>
+                                {notif.title}
+                              </Typography>
+                              {!notif.read && (
+                                <Box sx={{ 
+                                  width: 8, 
+                                  height: 8, 
+                                  borderRadius: '50%', 
+                                  background: C.blue,
+                                  flexShrink: 0
+                                }} />
+                              )}
+                            </Box>
+                          }
+                          secondary={
+                            <>
+                              <Typography sx={{ fontSize: '0.85rem', color: '#64748B', mb: 0.5 }}>
+                                {notif.message}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                                {notif.timestamp.toLocaleString('fr-FR', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </Typography>
+                            </>
+                          }
+                        />
+                        <Box sx={{ display: 'flex', gap: 0.5, ml: 2 }}>
+                          {!notif.read && (
+                            <IconButton
+                              size="small"
+                              onClick={() => markAsRead(notif.id)}
+                              sx={{
+                                color: C.blue,
+                                '&:hover': { background: `${C.blue}15` },
+                              }}
+                            >
+                              <MarkEmailReadIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                          <IconButton
+                            size="small"
+                            onClick={() => deleteNotification(notif.id)}
+                            sx={{
+                              color: C.red,
+                              '&:hover': { background: C.redL },
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Préférences de notifications */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ borderRadius: '20px', border: `1.5px solid ${C.blueL}`, boxShadow: `0 2px 12px rgba(0,0,0,0.06)`, mb: 3 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                  <Typography sx={{ fontSize: '1.5rem' }}>⚙️</Typography>
+                  <Box>
+                    <Typography sx={{ fontSize: '1.05rem', color: C.navy, fontWeight: 700 }}>
+                      Préférences
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#8A9BB0' }}>
+                      Gérez vos notifications
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {[
+                  { key: 'email', icon: '📧', label: 'Notifications email', desc: 'Recevoir par email' },
+                  { key: 'push', icon: '🔔', label: 'Notifications push', desc: 'En temps réel' },
+                  { key: 'sms', icon: '📱', label: 'Notifications SMS', desc: 'Alertes urgentes' },
+                  { key: 'rapports', icon: '📊', label: 'Rapports', desc: 'Résumés hebdomadaires' },
+                  { key: 'demandes', icon: '🎯', label: 'Demandes d\'accès', desc: 'Nouvelles demandes' },
+                  { key: 'activite', icon: '👥', label: 'Activité', desc: 'Actions utilisateurs' },
+                ].map((pref) => (
+                  <Box
+                    key={pref.key}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      py: 1.5,
+                      borderBottom: `1px solid ${C.blueL}`,
+                      '&:last-child': { borderBottom: 'none' },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                      <Typography sx={{ fontSize: '1.3rem' }}>{pref.icon}</Typography>
+                      <Box>
+                        <Typography sx={{ fontSize: '0.9rem', color: C.navy, fontWeight: 600 }}>
+                          {pref.label}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#8A9BB0' }}>
+                          {pref.desc}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Switch
+                      checked={notificationPrefs[pref.key]}
+                      onChange={() => toggleNotificationPref(pref.key)}
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': {
+                          color: C.green,
+                        },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                          backgroundColor: C.green,
+                        },
+                      }}
+                    />
+                  </Box>
+                ))}
+
+                <Button
+                  fullWidth
+                  sx={{
+                    mt: 3,
+                    textTransform: 'none',
+                    color: '#fff',
+                    py: 1.2,
+                    borderRadius: '10px',
+                    background: C.blue,
+                    fontWeight: 600,
+                    '&:hover': { background: C.blueD },
+                  }}
+                >
+                  💾 Enregistrer
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Statistiques */}
+            <Card sx={{ borderRadius: '20px', border: `1.5px solid ${C.blueL}`, boxShadow: `0 2px 12px rgba(0,0,0,0.06)` }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography sx={{ fontSize: '1.05rem', color: C.navy, fontWeight: 700, mb: 2 }}>
+                  📈 Statistiques
+                </Typography>
+                {[
+                  { label: 'Total', value: notifications.length, color: C.blue },
+                  { label: 'Non lues', value: unreadCount, color: C.orange },
+                  { label: 'Aujourd\'hui', value: notifications.filter(n => {
+                    const today = new Date();
+                    return n.timestamp.toDateString() === today.toDateString();
+                  }).length, color: C.green },
+                ].map((stat, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 1.5,
+                      borderBottom: i < 2 ? `1px solid ${C.blueL}` : 'none',
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.9rem', color: '#64748B' }}>
+                      {stat.label}
+                    </Typography>
+                    <Typography sx={{ 
+                      fontSize: '1.3rem', 
+                      fontWeight: 800, 
+                      color: stat.color 
+                    }}>
+                      {stat.value}
+                    </Typography>
+                  </Box>
+                ))}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
     </Box>
   );

@@ -136,9 +136,16 @@ export default function AdminDashboard() {
     ETUDIANT: 0,
     total: 0
   });
+  const [etablissementStats, setEtablissementStats] = useState({
+    total_universites: 0,
+    effectif_total: 0,
+    taux_reussite_moyen: 0,
+    budget_total: 0
+  });
 
   useEffect(() => {
     fetchUserStats();
+    fetchEtablissementStats();
   }, []);
 
   const fetchUserStats = async () => {
@@ -161,6 +168,22 @@ export default function AdminDashboard() {
       setUserStats(stats);
     } catch (error) {
       console.error('Erreur lors de la récupération des stats:', error);
+    }
+  };
+
+  const fetchEtablissementStats = async () => {
+    try {
+      const res = await api.get('/etablissements/stats');
+      if (res.data.success) {
+        setEtablissementStats({
+          total_universites: parseInt(res.data.stats.total_universites) || 0,
+          effectif_total: parseInt(res.data.stats.effectif_total) || 0,
+          taux_reussite_moyen: parseFloat(res.data.stats.taux_reussite_moyen) || 0,
+          budget_total: parseFloat(res.data.stats.budget_total) || 0
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des stats établissements:', error);
     }
   };
 
@@ -273,6 +296,24 @@ export default function AdminDashboard() {
             }}>
             Gestion des utilisateurs
           </Button>
+          <Button variant="contained" startIcon={<span>🏫</span>}
+            onClick={() => navigate('/dashboard/admin/etablissements')}
+            sx={{
+              px: 3, py: 1.3, borderRadius: '14px', fontWeight: 800, fontSize: '0.88rem',
+              color: '#fff', textTransform: 'none',
+              background: 'linear-gradient(135deg, #7B2CBF 0%, #5A1E8F 100%)',
+              boxShadow: '0 6px 24px rgba(123,44,191,0.35)',
+              position: 'relative', overflow: 'hidden', transition: 'all 0.3s ease',
+              '&::after': { content: '""', position: 'absolute', top: '-50%', left: '-70%', width: '40%', height: '200%', background: 'rgba(255,255,255,0.18)', transform: 'skewX(-22deg)', transition: 'left 0.5s ease' },
+              '&:hover': { 
+                background: 'linear-gradient(135deg, #7B2CBF 0%, #5A1E8F 100%)',
+                transform: 'translateY(-2px)', 
+                boxShadow: '0 10px 32px rgba(123,44,191,0.45)' 
+              },
+              '&:hover::after': { left: '130%' },
+            }}>
+            Établissements
+          </Button>
           <Button variant="contained" startIcon={<span>✉️</span>}
             onClick={handleSendInvitations} disabled={sending}
             sx={{
@@ -317,10 +358,42 @@ export default function AdminDashboard() {
       {/* ══ STAT CARDS ══════════════════════════ */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {[
-          { title: 'Taux de réussite national', value: '76.8%', change: '+2.1% vs année précédente', changeType: 'positive', icon: '📈', iconBg: 'coral',    delay: 0    },
-          { title: 'Universités publiques',      value: '13',    change: '+1 nouvelle université',    changeType: 'positive', icon: '🏫', iconBg: 'mint',     delay: 0.08 },
-          { title: 'Étudiants inscrits',         value: '285K',  change: "+6.3% vs l'an dernier",    changeType: 'positive', icon: '👥', iconBg: 'lavender', delay: 0.16 },
-          { title: 'Budget MESRS',               value: '2.4 Mds', change: "+5.8% d'augmentation",  changeType: 'positive', icon: '💰', iconBg: 'peach',    delay: 0.24 },
+          { 
+            title: 'Taux de réussite national', 
+            value: `${etablissementStats.taux_reussite_moyen.toFixed(1)}%`, 
+            change: '+2.1% vs année précédente', 
+            changeType: 'positive', 
+            icon: '📈', 
+            iconBg: 'coral', 
+            delay: 0 
+          },
+          { 
+            title: 'Universités publiques', 
+            value: etablissementStats.total_universites.toString(), 
+            change: '+1 nouvelle université', 
+            changeType: 'positive', 
+            icon: '🏫', 
+            iconBg: 'mint', 
+            delay: 0.08 
+          },
+          { 
+            title: 'Étudiants inscrits', 
+            value: `${(etablissementStats.effectif_total / 1000).toFixed(0)}K`, 
+            change: "+6.3% vs l'an dernier", 
+            changeType: 'positive', 
+            icon: '👥', 
+            iconBg: 'lavender', 
+            delay: 0.16 
+          },
+          { 
+            title: 'Budget MESRS', 
+            value: `${(etablissementStats.budget_total / 1000000000).toFixed(1)} Mds`, 
+            change: "+5.8% d'augmentation", 
+            changeType: 'positive', 
+            icon: '💰', 
+            iconBg: 'peach', 
+            delay: 0.24 
+          },
         ].map((s, i) => (
           <Grid item xs={12} sm={6} md={3} key={i}>
             <StatCard {...s} />

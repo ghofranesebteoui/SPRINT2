@@ -94,7 +94,8 @@ export default function DashboardLayout() {
   const menuItems = {
     admin: [
       { text: "Vue d'ensemble", icon: '📊', path: '/dashboard/admin'  },
-      { text: 'Universités',    icon: '🎓', path: '/universites'       },
+      { text: 'Établissements', icon: '🏫', path: '/dashboard/admin/etablissements' },
+      { text: 'Spécialités',    icon: '🎓', path: '/dashboard/admin/specialites' },
       { text: 'Analytics',      icon: '📈', path: '/analytics'         },
       { text: 'Rapports',       icon: '📋', path: '/reports'           },
       { text: 'Mon Profil',     icon: '👨‍💼', path: '/dashboard/profile' },

@@ -119,63 +119,71 @@ const BouncingDots = () => (
 
 // ── SUCCESS PAGE ──────────────────────────────────
 const SuccessPage = ({ navigate }) => (
-  <Box sx={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+  <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #E8EAF6 0%, #F3E5F5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
     <Container maxWidth="sm">
       <Box sx={{
-        background: '#fff', borderRadius: '28px',
+        background: '#FEFEFE', borderRadius: '32px',
         p: 6, textAlign: 'center',
-        border: `1.5px solid ${C.blueL}`,
-        boxShadow: `0 16px 60px rgba(26,58,107,0.12)`,
-        position: 'relative', overflow: 'hidden',
+        borderTop: `4px solid ${C.green}`,
+        boxShadow: `0 20px 60px rgba(0,0,0,0.12)`,
+        position: 'relative', overflow: 'visible',
       }}>
-        {/* top shimmer bar */}
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${C.greenDD}, ${C.green}, ${C.blueB}, ${C.green}, ${C.greenDD})`, backgroundSize: '300% auto' }} />
-
         {/* success icon */}
         <Box sx={{
-          width: 96, height: 96, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${C.greenDD}, ${C.greenD}, ${C.green})`,
+          width: 140, height: 140, borderRadius: '50%',
+          background: `linear-gradient(135deg, #10B981 0%, #059669 100%)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          mx: 'auto', mb: 3,
-          boxShadow: `0 10px 34px ${C.green}40`,
-          fontSize: '2.8rem',
-        }}>✓</Box>
+          margin: '-90px auto 32px',
+          boxShadow: `0 15px 50px rgba(16, 185, 129, 0.4)`,
+          animation: `${popIn} 0.6s ease-out`,
+        }}>
+          <Typography sx={{ fontSize: '5rem', color: '#1E3A5F', fontWeight: 'bold', lineHeight: 1 }}>✓</Typography>
+        </Box>
 
-        <Typography sx={{ fontWeight: 900, color: C.navy, fontSize: '1.6rem', letterSpacing: '-0.5px', mb: 1 }}>
+        <Typography sx={{ fontWeight: 900, color: '#1E3A5F', fontSize: '2rem', letterSpacing: '-0.5px', mb: 3 }}>
           Demande envoyée ! 🎉
         </Typography>
-        <Typography sx={{ color: C.muted, fontSize: '0.88rem', lineHeight: 1.8, mb: 4, maxWidth: 360, mx: 'auto' }}>
-          Votre demande a été soumise avec succès. L'administration examinera votre dossier et vous recevrez vos identifiants par email si elle est acceptée.
+        <Typography sx={{ color: '#8B92A8', fontSize: '1.05rem', lineHeight: 1.8, mb: 2 }}>
+          Votre demande a été soumise avec succès.
+        </Typography>
+        <Typography sx={{ color: '#8B92A8', fontSize: '1.05rem', lineHeight: 1.8, mb: 4 }}>
+          L'administration examinera votre dossier et vous recevrez vos identifiants par email si elle est acceptée.
         </Typography>
 
         {/* security badges */}
-        <Box sx={{ display: 'flex', gap: 1.2, justifyContent: 'center', mb: 4 }}>
-          {[
-            { icon: '🔒', label: 'Sécurisé' },
-            { icon: '✅', label: 'Soumis'   },
-            { icon: '📧', label: 'Email envoyé' },
-          ].map((b, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.6, background: C.blueL, border: `1px solid ${C.blue}20`, px: 1.4, py: 0.5, borderRadius: '10px' }}>
-              <Typography sx={{ fontSize: '0.78rem' }}>{b.icon}</Typography>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: C.blueD }}>{b.label}</Typography>
-            </Box>
-          ))}
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mb: 5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, background: '#E0F2FE', border: `1px solid #BAE6FD`, px: 2, py: 1.2, borderRadius: '12px' }}>
+            <Typography sx={{ fontSize: '1.1rem' }}>🔒</Typography>
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#0369A1' }}>Sécurisé</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, background: '#D1FAE5', border: `1px solid #A7F3D0`, px: 2, py: 1.2, borderRadius: '12px' }}>
+            <Typography sx={{ fontSize: '1.1rem' }}>✅</Typography>
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#065F46' }}>Soumis</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, background: '#DBEAFE', border: `1px solid #BFDBFE`, px: 2, py: 1.2, borderRadius: '12px' }}>
+            <Typography sx={{ fontSize: '1.1rem' }}>📧</Typography>
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E40AF' }}>Email envoyé</Typography>
+          </Box>
         </Box>
 
         {/* CTA button */}
         <Button onClick={() => navigate('/')} sx={{
-          px: 5, py: 1.6, borderRadius: '50px',
-          fontWeight: 800, fontSize: '0.92rem', color: '#fff',
+          width: '100%',
+          px: 5, py: 2.5, borderRadius: '16px',
+          fontWeight: 700, fontSize: '1.05rem', color: '#fff',
           textTransform: 'none', border: 'none',
-          background: `linear-gradient(90deg, ${C.coralD}, ${C.coral}, ${C.coralL}, ${C.coral}, ${C.coralD})`,
-          backgroundSize: '300% auto',
-          display: 'inline-flex', alignItems: 'center', gap: '10px',
-          transition: 'transform 0.25s ease',
-          '&:hover': { transform: 'translateY(-3px) scale(1.04)', color: '#fff' },
+          background: '#1E3A5F',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 8px 24px rgba(30, 58, 95, 0.25)',
+          transition: 'all 0.3s ease',
+          '&:hover': { 
+            transform: 'translateY(-2px)', 
+            color: '#fff',
+            background: '#152B47',
+            boxShadow: '0 12px 32px rgba(30, 58, 95, 0.35)',
+          },
         }}>
-          <Box component="span" sx={{ fontSize: '1rem', display: 'inline-block' }}>🏠</Box>
-          Retour à l'accueil
-          <Box component="span" sx={{ display: 'inline-block' }}>→</Box>
+          Retour à la connexion
         </Button>
       </Box>
     </Container>

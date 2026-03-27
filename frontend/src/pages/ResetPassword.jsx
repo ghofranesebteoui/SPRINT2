@@ -45,6 +45,37 @@ const ResetPassword = () => {
     setError('');
   };
 
+  const generateStrongPassword = () => {
+    const length = 16;
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const allChars = uppercase + lowercase + numbers + special;
+    
+    let password = '';
+    // Garantir au moins un caractère de chaque type
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+    
+    // Remplir le reste
+    for (let i = password.length; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Mélanger le mot de passe
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    setFormData({
+      nouveau_mot_de_passe: password,
+      confirmer_mot_de_passe: password,
+    });
+    setShowPwd(true);
+    setShowConfirmPwd(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -227,11 +258,30 @@ const ResetPassword = () => {
             <form onSubmit={handleSubmit}>
               {/* Nouveau mot de passe */}
               <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Typography sx={{
                     color: C.navy, fontWeight: 700, fontSize: '0.75rem',
                     textTransform: 'uppercase', letterSpacing: '0.8px',
                   }}>Nouveau mot de passe</Typography>
+                  <Button
+                    onClick={generateStrongPassword}
+                    size="small"
+                    sx={{
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      color: C.blue,
+                      textTransform: 'none',
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: '8px',
+                      background: `${C.blue}10`,
+                      '&:hover': {
+                        background: `${C.blue}20`,
+                      },
+                    }}
+                  >
+                    ✨ Générer un mot de passe fort
+                  </Button>
                 </Box>
                 <TextField
                   fullWidth
